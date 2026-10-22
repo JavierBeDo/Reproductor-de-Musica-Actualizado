@@ -16,6 +16,8 @@ data class Song(
 
 class SongRepository (private val context: Context){
 
+    private val excludedFolders = setOf("whatsapp", "telegram")
+
     suspend fun loadSongs(): List<Song> = withContext(Dispatchers.IO) {
         val songs = mutableListOf<Song>()
         val collection = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
@@ -24,13 +26,23 @@ class SongRepository (private val context: Context){
             MediaStore.Audio.Media.TITLE,
             MediaStore.Audio.Media.ARTIST
         )
-        val sortOrder = "${MediaStore.Audio.Media.TITLE} COLLATE NOCASE ASC"
 
-        context.contentResolver.query(collection, projection, null, null, sortOrder)?.use { c ->
+        val selection = buildString {
+            append("${MediaStore.Audio.Media.IS_MUSIC} != 0")
+            excludedFolders.forEach {
+                append(" AND ${MediaStore.Audio.Media.DATA} NOT LIKE ?")
+            }
+        }
+
+        val selectionArgs = excludedFolders.map { "%$it%" }.toTypedArray()
+
+        val sortOrder = "${MediaStore.Audio.Media.DATE_ADDED} DESC, ${MediaStore.Audio.Media._ID} DESC"
+
+        context.contentResolver.query(collection, projection, selection, selectionArgs, sortOrder)?.use { c ->
             val idCol = c.getColumnIndexOrThrow(MediaStore.Audio.Media._ID)
             val titleCol = c.getColumnIndexOrThrow(MediaStore.Audio.Media.TITLE)
             val artistCol = c.getColumnIndexOrThrow(MediaStore.Audio.Media.ARTIST)
-            while (c.moveToNext()) {
+            while (c.moveToNext()){
                 val id = c.getLong(idCol)
                 songs += Song(
                     id = id,

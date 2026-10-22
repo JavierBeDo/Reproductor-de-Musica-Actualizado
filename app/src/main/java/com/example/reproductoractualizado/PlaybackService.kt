@@ -19,7 +19,7 @@ class PlaybackService : MediaSessionService() {
             .build()
 
         val player = ExoPlayer.Builder(this)
-            .setAudioAttributes(audioAttributes, /* handleAudioFocus = */ true) // pausa si entra una llamada
+            .setAudioAttributes(audioAttributes, true) // pausa si entra una llamada
             .setHandleAudioBecomingNoisy(true) // pausa si desconectas los auriculares
             .build()
         player.repeatMode = Player.REPEAT_MODE_ALL

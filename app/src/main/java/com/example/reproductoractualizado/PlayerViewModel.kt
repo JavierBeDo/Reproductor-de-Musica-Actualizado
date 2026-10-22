@@ -49,6 +49,10 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
                 }
             }
         }
+
+        override fun onShuffleModeEnabledChanged(shuffleModeEnabled: Boolean) {
+            _state.update {it.copy(shuffle = shuffleModeEnabled)}
+        }
     }
 
     init {
@@ -87,8 +91,24 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
         val s = _state.value
         if (!s.loaded) return
 
-        if (p.mediaItemCount == 0 && s.songs.isNotEmpty()) {
-            p.setMediaItems(s.songs.map { it.toMediaItem() })
+//        if (p.mediaItemCount == 0 && s.songs.isNotEmpty()) {
+//            p.setMediaItems(s.songs.map { it.toMediaItem() })
+//            p.prepare()
+//        }
+
+        val sameList = p.mediaItemCount == s.songs.size &&
+                s.songs.indices.all { p.getMediaItemAt(it).mediaId == s.songs[it].id.toString() }
+
+        if (!sameList && s.songs.isNotEmpty()) {
+            val items = s.songs.map { it.toMediaItem() }
+            val currentId = p.currentMediaItem?.mediaId
+            val currentIndex = s.songs.indexOfFirst { it.id.toString() == currentId }
+
+            if (currentIndex >= 0) {
+                p.setMediaItems(items, currentIndex, p.currentPosition)
+            } else {
+                p.setMediaItems(items)
+            }
             p.prepare()
         }
 
@@ -98,6 +118,7 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
                 isPlaying = p.isPlaying,
                 loopOne = p.repeatMode == Player.REPEAT_MODE_ONE,
                 currentIndex = if (started) p.currentMediaItemIndex else -1,
+                shuffle = p.shuffleModeEnabled,
                 positionMs = p.currentPosition,
                 durationMs = p.duration.coerceAtLeast(0L)
             )
@@ -125,15 +146,29 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun next() {
+        val p = player ?: return
         val s = _state.value
         if (s.songs.isEmpty()) return
-        playAt((s.currentIndex + 1) % s.songs.size)
+        if (p.shuffleModeEnabled){
+            if(p.hasNextMediaItem()) p.seekToNextMediaItem()
+            else p.seekTo(p.currentTimeline.getFirstWindowIndex(true), 0L)
+            p.play()
+        } else {
+            playAt((s.currentIndex + 1) % s.songs.size)
+        }
     }
 
     fun previous() {
+        val p = player ?: return
         val s = _state.value
         if (s.songs.isEmpty()) return
-        playAt(if (s.currentIndex > 0) s.currentIndex - 1 else s.songs.size - 1)
+        if(p.shuffleModeEnabled){
+            if(p.hasPreviousMediaItem()) p.seekToPreviousMediaItem()
+            else p.seekTo(p.currentTimeline.getLastWindowIndex(true), 0L)
+            p.play()
+        } else {
+            playAt(if(s.currentIndex > 0) s.currentIndex - 1 else s.songs.size - 1)
+        }
     }
 
     fun toggleLoop() {
@@ -141,6 +176,13 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
         val loop = !_state.value.loopOne
         p.repeatMode = if (loop) Player.REPEAT_MODE_ONE else Player.REPEAT_MODE_ALL
         _state.update { it.copy(loopOne = loop) }
+    }
+
+    fun toggleShuffle(){
+        val p = player ?: return
+        val enabled = !p.shuffleModeEnabled
+        p.shuffleModeEnabled = enabled
+        _state.update { it.copy(shuffle = enabled) }
     }
 
     fun seekTo(ms: Long) {

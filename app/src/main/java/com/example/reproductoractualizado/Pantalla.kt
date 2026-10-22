@@ -2,7 +2,6 @@ package com.example.reproductoractualizado
 
 import android.Manifest
 import android.content.pm.PackageManager
-import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
@@ -23,6 +22,7 @@ import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Repeat
 import androidx.compose.material.icons.filled.RepeatOne
+import androidx.compose.material.icons.filled.Shuffle
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.SkipPrevious
 import androidx.compose.material3.Button
@@ -59,30 +59,38 @@ fun formatTime(ms: Long): String {
     return "%02d:%02d".format(totalSeconds / 60, totalSeconds % 60)
 }
 
+// TODO cambiar README POST_NOTIFICATION
+//  La app pide el permiso de audio al abrirse. La notificación de reproducción no necesita el permiso de notificaciones,
+//  porque en Android 13 o superior las notificaciones de sesiones multimedia están exentas.
+//  */
 @Composable
 fun MusicApp(viewModel: PlayerViewModel = viewModel()) {
     val context = LocalContext.current
     val state by viewModel.state.collectAsStateWithLifecycle()
 
-    //fix pedir permisos version tiramisu
-    val permission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
-        Manifest.permission.READ_MEDIA_AUDIO
-    else
-        Manifest.permission.READ_EXTERNAL_STORAGE
+    val audioPermission = Manifest.permission.READ_MEDIA_AUDIO
 
     var hasPermission by remember {
         mutableStateOf(
-            ContextCompat.checkSelfPermission(context, permission) ==
-                    PackageManager.PERMISSION_GRANTED
+            ContextCompat.checkSelfPermission(
+                context,
+                audioPermission
+            ) == PackageManager.PERMISSION_GRANTED
         )
-
     }
-    val launcher = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { granted -> hasPermission = granted }
 
-    LaunchedEffect(Unit) { if (!hasPermission) launcher.launch(permission) }
-    LaunchedEffect(hasPermission) { if (hasPermission) viewModel.loadSongs() }
+    val audioPermissionLauncher =
+        rememberLauncherForActivityResult(
+            ActivityResultContracts.RequestPermission()
+        ) { granted ->
+            hasPermission = granted
+
+        }
+
+    LaunchedEffect(hasPermission) {
+        if (hasPermission) viewModel.loadSongs()
+        else audioPermissionLauncher.launch(audioPermission)
+    }
 
     Scaffold { padding ->
         Column(
@@ -97,7 +105,11 @@ fun MusicApp(viewModel: PlayerViewModel = viewModel()) {
             ) {
                 when {
                     !hasPermission -> Message("Necesito permiso para leer tu música") {
-                        Button(onClick = { launcher.launch(permission) }) { Text("Dar permiso") }
+                        Button(onClick = { audioPermissionLauncher.launch(audioPermission) }) {
+                            Text(
+                                "Dar permiso"
+                            )
+                        }
                     }
 
                     state.loaded && state.songs.isEmpty() -> Message("No se han encontrado canciones")
@@ -110,6 +122,7 @@ fun MusicApp(viewModel: PlayerViewModel = viewModel()) {
                 onNext = viewModel::next,
                 onPrevious = viewModel::previous,
                 onLoop = viewModel::toggleLoop,
+                onShuffle = viewModel::toggleShuffle,
                 onSeek = viewModel::seekTo
             )
         }
@@ -170,6 +183,7 @@ private fun PlayerControls(
     onNext: () -> Unit,
     onPrevious: () -> Unit,
     onLoop: () -> Unit,
+    onShuffle: () -> Unit,
     onSeek: (Long) -> Unit
 ) {
     var dragging by remember { mutableStateOf(false) }
@@ -221,6 +235,15 @@ private fun PlayerControls(
                 }
                 IconButton(onClick = onNext) {
                     Icon(Icons.Default.SkipNext, contentDescription = "Siguiente")
+                }
+
+                IconButton(onClick = onShuffle) {
+                    Icon(
+                        Icons.Default.Shuffle,
+                        contentDescription = "Aleatorio",
+                        tint = if (state.shuffle) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
         }
