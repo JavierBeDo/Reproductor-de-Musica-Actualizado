@@ -49,10 +49,9 @@ flowchart LR
 | Permiso | Para qué |
 |---|---|
 | `READ_MEDIA_AUDIO` (Android 13+) / `READ_EXTERNAL_STORAGE` (hasta Android 12L) | Leer la música del dispositivo |
-| `POST_NOTIFICATIONS` (Android 13+) | Mostrar la notificación con controles |
 | `FOREGROUND_SERVICE` y `FOREGROUND_SERVICE_MEDIA_PLAYBACK` | Mantener la reproducción en segundo plano |
 
-La app pide el permiso de audio al abrirse y, una vez concedido, el de notificaciones. Sin el de notificaciones la música suena igual, pero no aparece la notificación con controles.
+La app pide el permiso de audio al abrirse. La notificación de reproducción no necesita el permiso de notificaciones, porque en Android 13 o superior las notificaciones de sesiones multimedia están exentas.
 
 ## Cómo ejecutarlo
 
