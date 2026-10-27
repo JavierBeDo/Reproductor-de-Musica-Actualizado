@@ -9,8 +9,10 @@ Reproductor que toca los archivos de audio guardados en el móvil. Empezó como 
 
 ## Funciones
 
-- Lista de la música del dispositivo, ordenada por título, con la canción actual resaltada.
+- Lista de la música del dispositivo, ordenada por fecha de incorporación, con la canción actual resaltada.
+- Buscador por título y artista, sin distinguir mayúsculas ni tildes.
 - Reproducir / pausar, canción anterior y siguiente (al llegar al final o al principio de la lista, da la vuelta).
+- Modo aleatorio.
 - Bucle de la canción actual.
 - Barra de progreso con tiempo transcurrido y duración, con salto a cualquier punto.
 - Reproducción en segundo plano, con notificación y controles en la pantalla de bloqueo.
@@ -54,6 +56,7 @@ flowchart LR
 La app pide el permiso de audio al abrirse. La notificación de reproducción no necesita el permiso de notificaciones, porque en Android 13 o superior las notificaciones de sesiones multimedia están exentas.
 
 ## Cómo ejecutarlo
+Requiere Android 13 (API 33) o superior
 
 1. Clona el repositorio:
    ```bash
@@ -66,11 +69,12 @@ La app pide el permiso de audio al abrirse. La notificación de reproducción no
 ## Limitaciones conocidas
 
 - Solo aparecen las canciones que Android tiene indexadas en `MediaStore`. Un archivo en una carpeta que el sistema no escanea (por ejemplo, con un `.nomedia`) no saldrá en la lista.
-- No hay carátulas, buscador ni listas de reproducción todavía.
+- El buscador solo filtra lo que se ve. Siguiente, anterior y aleatorio se mueven por toda la biblioteca, no solo por los resultados
+- No hay carátulas ni listas de reproducción todavía.
 
 ## Ideas para el futuro
 
-- Pantalla "Reproduciendo ahora" a pantalla completa.
+- Pantalla "Reproduciendo ahora" a pantalla completa: al elegir una canción (también desde el buscador) se abre el reproductor, y al volver se ve la lista completa con la canción resaltada.
 - Carátulas de los álbumes.
 - Buscador y modo aleatorio.
 - Listas de reproducción y favoritos.
